@@ -40,14 +40,14 @@ The bot is intentionally transparent. It does not scrape members, deanonymize us
 
 ### Highlights
 
-- Private identity lookup with `/start`.
+- Editable `/start` menu with a dedicated My Telegram ID screen.
 - Current chat, message and forum topic diagnostics with `/id`.
 - Forwarded user, hidden user, chat and channel origin lookup.
 - Public `@username` lookup through Telegram `getChat`.
 - Rich `/diagnose` flow with `getChat`, `getChatMemberCount` and bot admin status.
 - Sanitized raw update output through `/raw`.
 - Explicit unredacted output through `/raw_full confirm`.
-- Inline onboarding buttons for My ID, Help, Contact lookup, Raw JSON and GitHub.
+- Editable inline menu for My ID, Chat ID, Forwarded contact, Raw JSON, Diagnostics, Help and GitHub.
 - Structured privacy-safe logs without raw payloads.
 - Railway-ready polling worker deployment.
 - Full user and launch documentation.
@@ -76,14 +76,14 @@ The bot is intentionally transparent. It does not scrape members, deanonymize us
 
 ### Возможности
 
-- `/start` показывает Telegram identity пользователя.
+- `/start` открывает editable menu с отдельным экраном My Telegram ID.
 - `/id` показывает chat ID, message ID и forum topic ID.
 - Forwarded contact lookup показывает доступные данные о пересланном пользователе, скрытом пользователе, чате или канале.
 - Lookup публичного `@username` через Telegram `getChat`.
 - `/diagnose` проверяет `getChat`, `getChatMemberCount`, статус бота и admin rights.
 - `/raw` показывает sanitized raw Telegram update JSON.
 - `/raw_full confirm` показывает unredacted raw JSON только после явного подтверждения.
-- Inline-кнопки в onboarding: My ID, Help, Contact lookup, Raw JSON, GitHub.
+- Editable inline menu: My ID, Chat ID, Forwarded contact, Raw JSON, Diagnostics, Help, GitHub.
 - Privacy-safe structured logs без raw payloads.
 - Готовая конфигурация для Railway.
 - Документация для пользователей, запуска и BotFather.
@@ -105,6 +105,22 @@ The bot is intentionally transparent. It does not scrape members, deanonymize us
 | Permission diagnostics | `/diagnose` | Ready | Shows unavailable checks instead of failing |
 | Support identity card | `/support_card` | Ready | Minimal identity data only |
 | Webhook mode | N/A | Planned | Current deployment uses polling |
+
+## Inline Menu UX
+
+`/start` opens a compact menu instead of a long one-off response. Menu buttons edit the same Telegram message and include a `Back to menu` control for secondary screens.
+
+Available screens:
+
+- My Telegram ID.
+- Chat ID.
+- Forwarded contact.
+- Raw update JSON.
+- Diagnostics.
+- Help.
+- GitHub link.
+
+This keeps private chats clean and makes the bot feel more like a tool than a pile of command replies.
 
 ## Commands
 

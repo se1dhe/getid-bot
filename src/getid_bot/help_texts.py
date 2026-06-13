@@ -15,6 +15,40 @@ HELP_OVERVIEW = (
     "The bot cannot reveal hidden forwarded users, scrape members or bypass Telegram limits."
 )
 
+MAIN_MENU_TEXT = (
+    "<b>getid-bot menu</b>\n"
+    "Choose what you want to inspect.\n\n"
+    "<b>Fast paths</b>\n"
+    "My Telegram ID - your user ID and public user fields.\n"
+    "Chat ID - how to get group, channel and topic IDs.\n"
+    "Forwarded contact - inspect forwarded user/chat/channel origins.\n"
+    "Raw update JSON - debug Telegram update payloads safely.\n"
+    "Diagnostics - check bot permissions and privacy-mode blockers."
+)
+
+CHAT_ID_MENU = (
+    "<b>Chat ID</b>\n"
+    "Use /id in any chat where the bot can receive messages.\n\n"
+    "In groups and supergroups, the bot shows chat ID, chat type, message ID and topic ID "
+    "when Telegram includes message_thread_id.\n\n"
+    "For public channels or groups, send @username here to run a getChat lookup."
+)
+
+RAW_MENU = (
+    "<b>Raw update JSON</b>\n"
+    "Use /raw on any message to inspect sanitized Telegram update JSON.\n\n"
+    "The bot redacts text, captions, callback data, tokens, invite links, phone numbers, "
+    "emails, payment data and file identifiers by default.\n\n"
+    "Use /raw_full confirm only when unredacted output is deliberately needed."
+)
+
+DIAGNOSTICS_MENU = (
+    "<b>Diagnostics</b>\n"
+    "Use /diagnose to inspect the current chat.\n\n"
+    "The bot attempts getChat, getChatMemberCount and getChatMember for its own account, "
+    "then reports bot status, visible member count, topic ID and unavailable checks."
+)
+
 CONTACT_HELP = (
     "<b>Contact lookup</b>\n"
     "Forward me a message from a user, group or channel. I will show every origin field "

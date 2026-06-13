@@ -15,8 +15,17 @@ from .formatters import (
     format_user,
     preformatted,
 )
-from .help_texts import CONTACT_HELP, HELP_OVERVIEW, HELP_TEXTS, RAW_FULL_WARNING
-from .keyboards import start_keyboard
+from .help_texts import (
+    CHAT_ID_MENU,
+    CONTACT_HELP,
+    DIAGNOSTICS_MENU,
+    HELP_OVERVIEW,
+    HELP_TEXTS,
+    MAIN_MENU_TEXT,
+    RAW_FULL_WARNING,
+    RAW_MENU,
+)
+from .keyboards import back_to_menu_keyboard, main_menu_keyboard, start_keyboard
 from .observability import log_message_event
 from .redaction import redact
 
@@ -29,7 +38,7 @@ async def handle_start(message: Message) -> None:
     if message.from_user is None:
         await message.answer("Telegram did not include user data in this update.")
         return
-    await message.answer(format_user(message.from_user), reply_markup=start_keyboard())
+    await message.answer(MAIN_MENU_TEXT, reply_markup=start_keyboard())
 
 
 @router.callback_query(F.data == "menu:my_id")
@@ -37,30 +46,52 @@ async def handle_menu_my_id(callback: CallbackQuery) -> None:
     if callback.from_user is None or callback.message is None:
         await callback.answer("User data is unavailable.")
         return
-    await callback.message.answer(format_user(callback.from_user), reply_markup=start_keyboard())
+    await callback.message.edit_text(
+        format_user(callback.from_user),
+        reply_markup=back_to_menu_keyboard(),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "menu:home")
+async def handle_menu_home(callback: CallbackQuery) -> None:
+    if callback.message is not None:
+        await callback.message.edit_text(MAIN_MENU_TEXT, reply_markup=main_menu_keyboard())
     await callback.answer()
 
 
 @router.callback_query(F.data == "menu:help")
 async def handle_menu_help(callback: CallbackQuery) -> None:
     if callback.message is not None:
-        await callback.message.answer(HELP_OVERVIEW, reply_markup=start_keyboard())
+        await callback.message.edit_text(HELP_OVERVIEW, reply_markup=back_to_menu_keyboard())
+    await callback.answer()
+
+
+@router.callback_query(F.data == "menu:chat_id")
+async def handle_menu_chat_id(callback: CallbackQuery) -> None:
+    if callback.message is not None:
+        await callback.message.edit_text(CHAT_ID_MENU, reply_markup=back_to_menu_keyboard())
     await callback.answer()
 
 
 @router.callback_query(F.data == "menu:contact")
 async def handle_menu_contact(callback: CallbackQuery) -> None:
     if callback.message is not None:
-        await callback.message.answer(CONTACT_HELP)
+        await callback.message.edit_text(CONTACT_HELP, reply_markup=back_to_menu_keyboard())
     await callback.answer()
 
 
 @router.callback_query(F.data == "menu:raw")
 async def handle_menu_raw(callback: CallbackQuery) -> None:
     if callback.message is not None:
-        await callback.message.answer(
-            "Use /raw on any message to inspect sanitized Telegram update JSON."
-        )
+        await callback.message.edit_text(RAW_MENU, reply_markup=back_to_menu_keyboard())
+    await callback.answer()
+
+
+@router.callback_query(F.data == "menu:diagnostics")
+async def handle_menu_diagnostics(callback: CallbackQuery) -> None:
+    if callback.message is not None:
+        await callback.message.edit_text(DIAGNOSTICS_MENU, reply_markup=back_to_menu_keyboard())
     await callback.answer()
 
 

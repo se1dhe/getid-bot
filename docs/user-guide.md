@@ -8,7 +8,7 @@ Open the bot in a private chat and send:
 /start
 ```
 
-The bot shows your Telegram user ID, username, display name, language code, bot flag and Premium status when Telegram exposes it.
+The bot opens an inline menu. Press `My Telegram ID` to show your Telegram user ID, username, display name, language code, bot flag and Premium status when Telegram exposes it.
 
 If Premium is not present in the update, the bot shows:
 
@@ -99,4 +99,3 @@ The bot cannot:
 - Scrape group members.
 - Bypass privacy mode.
 - Access private channels or groups where the bot is not allowed.
-
