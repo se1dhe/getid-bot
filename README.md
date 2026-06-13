@@ -6,6 +6,7 @@ Privacy-first Telegram diagnostics bot for user IDs, group IDs, channel IDs, for
 
 - Private `/start` identity response.
 - Group/supergroup diagnostics with chat ID, message ID and topic ID.
+- Forwarded user, chat and channel origin lookup.
 - `/raw` sanitized Telegram update JSON.
 - `/support_card` minimal support identity card.
 - `/diagnose` permission and privacy-mode guidance.
@@ -39,6 +40,7 @@ Recommended commands:
 ```text
 start - Show your Telegram identity
 id - Show current chat and message IDs
+contact - Inspect a forwarded user, chat or channel
 raw - Show sanitized raw update JSON
 diagnose - Explain permissions and privacy mode
 support_card - Create a minimal support identity card
@@ -70,4 +72,3 @@ uv run getid-bot
 ## Safety
 
 This bot uses only official Telegram Bot API data. It must not scrape members, deanonymize users, discover hidden profiles or bypass Telegram privacy controls.
-

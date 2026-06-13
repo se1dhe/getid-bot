@@ -3,12 +3,13 @@ from __future__ import annotations
 from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramAPIError
 from aiogram.filters import Command, CommandStart
-from aiogram.types import Message
+from aiogram.types import Chat, Message, MessageOriginChannel, MessageOriginChat
 
 from .formatters import (
     compact_json,
     format_chat,
     format_chat_lookup,
+    format_contact_lookup,
     format_support_card,
     format_user,
 )
@@ -37,6 +38,40 @@ async def handle_support_card(message: Message) -> None:
         await message.answer("Telegram did not include user data in this update.")
         return
     await message.answer(format_support_card(message.from_user))
+
+
+@router.message(Command("contact"))
+async def handle_contact_help(message: Message) -> None:
+    await message.answer(
+        "<b>Contact lookup</b>\n"
+        "Forward me a message from a user, group or channel. I will show every origin field "
+        "Telegram exposes to bots.\n\n"
+        "If Telegram hides the sender, I will say that clearly instead of guessing."
+    )
+
+
+@router.message(F.forward_origin | F.forward_from | F.forward_from_chat | F.forward_sender_name)
+async def handle_forwarded_origin(message: Message, bot: Bot) -> None:
+    enriched_chat = await get_forwarded_chat_details(message, bot)
+    await message.answer(format_contact_lookup(message, enriched_chat=enriched_chat))
+
+
+async def get_forwarded_chat_details(message: Message, bot: Bot) -> Chat | None:
+    chat_id: int | None = None
+    if isinstance(message.forward_origin, MessageOriginChannel):
+        chat_id = message.forward_origin.chat.id
+    elif isinstance(message.forward_origin, MessageOriginChat):
+        chat_id = message.forward_origin.sender_chat.id
+    elif message.forward_from_chat:
+        chat_id = message.forward_from_chat.id
+
+    if chat_id is None:
+        return None
+
+    try:
+        return await bot.get_chat(chat_id)
+    except TelegramAPIError:
+        return None
 
 
 @router.message(Command("raw"))
