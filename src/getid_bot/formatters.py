@@ -5,6 +5,8 @@ from typing import Any
 
 from aiogram.types import Chat, Message, User
 
+REPOSITORY_URL = "https://github.com/se1dhe/getid-bot"
+
 
 def code(value: object) -> str:
     return f"<code>{escape(str(value))}</code>"
@@ -18,7 +20,10 @@ def format_user(user: User) -> str:
     username = f"@{user.username}" if user.username else "-"
     full_name = user.full_name or "-"
     lines = [
-        "<b>Your Telegram identity</b>",
+        "<b>Telegram diagnostics</b>",
+        "I can show IDs, chat metadata, forum topic IDs and sanitized raw updates.",
+        "",
+        "<b>Your identity</b>",
         f"User ID: {code(user.id)}",
         f"Username: {code(username)}",
         f"Name: {escape(full_name)}",
@@ -27,6 +32,21 @@ def format_user(user: User) -> str:
     ]
     if user.is_premium is not None:
         lines.append(f"Premium: {code(user.is_premium)}")
+    lines.extend(
+        [
+            "",
+            "<b>Try next</b>",
+            "/id - show current chat, message and topic IDs",
+            "/raw - show sanitized raw Telegram update JSON",
+            "/diagnose - explain bot permissions and privacy limits",
+            "/support_card - create a minimal card for support",
+            "Send @channel_username here to look up a public channel or group.",
+            "",
+            "<b>Open source</b>",
+            f"Source code: {REPOSITORY_URL}",
+            "This bot uses only official Telegram Bot API data.",
+        ]
+    )
     return "\n".join(lines)
 
 

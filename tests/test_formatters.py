@@ -10,6 +10,9 @@ def test_format_user_preserves_large_id() -> None:
 
     assert "9007199254740993" in text
     assert "@ada" in text
+    assert "/raw" in text
+    assert "/diagnose" in text
+    assert "https://github.com/se1dhe/getid-bot" in text
 
 
 def test_format_chat_includes_topic_id() -> None:
@@ -31,4 +34,3 @@ def test_support_card_is_minimal() -> None:
     assert "Telegram ID" in text
     assert "123" in text
     assert "Language" not in text
-
