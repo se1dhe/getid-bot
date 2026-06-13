@@ -19,6 +19,17 @@ def test_format_user_preserves_large_id() -> None:
     assert "/raw" in text
     assert "/diagnose" in text
     assert "https://github.com/se1dhe/getid-bot" in text
+    assert "Premium" in text
+    assert "not exposed by Telegram" in text
+
+
+def test_format_user_shows_premium_when_exposed() -> None:
+    user = User(id=123, is_bot=False, first_name="Ada", is_premium=True)
+
+    text = format_user(user)
+
+    assert "Premium" in text
+    assert "True" in text
 
 
 def test_format_chat_includes_topic_id() -> None:
@@ -97,3 +108,18 @@ def test_format_contact_lookup_hidden_user_origin() -> None:
     assert "Forwarded hidden user" in text
     assert "Hidden Ada" in text
     assert "cannot bypass" in text
+
+
+def test_format_contact_lookup_user_origin_shows_missing_premium() -> None:
+    forwarded_user = User(id=123, is_bot=False, first_name="Ada")
+    message = Message(
+        message_id=42,
+        date=0,
+        chat=Chat(id=1, type="private"),
+        forward_from=forwarded_user,
+    )
+
+    text = format_contact_lookup(message)
+
+    assert "Premium" in text
+    assert "not exposed by Telegram" in text

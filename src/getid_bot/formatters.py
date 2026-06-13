@@ -15,7 +15,6 @@ from aiogram.types import (
 
 REPOSITORY_URL = "https://github.com/se1dhe/getid-bot"
 USER_EXTRA_FIELDS = (
-    "is_premium",
     "language_code",
     "added_to_attachment_menu",
     "can_join_groups",
@@ -54,9 +53,8 @@ def format_user(user: User) -> str:
         f"Name: {escape(full_name)}",
         f"Language: {code(value_or_dash(user.language_code))}",
         f"Is bot: {code(user.is_bot)}",
+        f"Premium: {code(format_optional_bool(user.is_premium))}",
     ]
-    if user.is_premium is not None:
-        lines.append(f"Premium: {code(user.is_premium)}")
     lines.extend(
         [
             "",
@@ -223,6 +221,7 @@ def format_user_details(user: User) -> str:
         f"Username: {code(username)}",
         f"Name: {escape(user.full_name or '-')}",
         f"Is bot: {code(user.is_bot)}",
+        f"Premium: {code(format_optional_bool(user.is_premium))}",
     ]
     lines.extend(format_extra_fields(user, USER_EXTRA_FIELDS))
     return "\n".join(lines)
@@ -250,6 +249,12 @@ def format_extra_fields(model: object, field_names: tuple[str, ...]) -> list[str
             value = ", ".join(str(item) for item in value) or "-"
         lines.append(f"{label}: {code(value)}")
     return lines
+
+
+def format_optional_bool(value: bool | None) -> str:
+    if value is None:
+        return "not exposed by Telegram"
+    return str(value)
 
 
 def compact_json(data: dict[str, Any]) -> str:
