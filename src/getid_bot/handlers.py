@@ -3,17 +3,21 @@ from __future__ import annotations
 from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramAPIError
 from aiogram.filters import Command, CommandStart
-from aiogram.types import Chat, Message, MessageOriginChannel, MessageOriginChat
+from aiogram.types import CallbackQuery, Chat, Message, MessageOriginChannel, MessageOriginChat
 
 from .formatters import (
     compact_json,
     format_chat,
     format_chat_lookup,
     format_contact_lookup,
+    format_diagnostics,
     format_support_card,
     format_user,
+    preformatted,
 )
-from .help_texts import HELP_TEXTS
+from .help_texts import CONTACT_HELP, HELP_OVERVIEW, HELP_TEXTS, RAW_FULL_WARNING
+from .keyboards import start_keyboard
+from .observability import log_message_event
 from .redaction import redact
 
 router = Router()
@@ -21,19 +25,54 @@ router = Router()
 
 @router.message(CommandStart())
 async def handle_start(message: Message) -> None:
+    log_message_event(message, "command", command="start")
     if message.from_user is None:
         await message.answer("Telegram did not include user data in this update.")
         return
-    await message.answer(format_user(message.from_user))
+    await message.answer(format_user(message.from_user), reply_markup=start_keyboard())
+
+
+@router.callback_query(F.data == "menu:my_id")
+async def handle_menu_my_id(callback: CallbackQuery) -> None:
+    if callback.from_user is None or callback.message is None:
+        await callback.answer("User data is unavailable.")
+        return
+    await callback.message.answer(format_user(callback.from_user), reply_markup=start_keyboard())
+    await callback.answer()
+
+
+@router.callback_query(F.data == "menu:help")
+async def handle_menu_help(callback: CallbackQuery) -> None:
+    if callback.message is not None:
+        await callback.message.answer(HELP_OVERVIEW, reply_markup=start_keyboard())
+    await callback.answer()
+
+
+@router.callback_query(F.data == "menu:contact")
+async def handle_menu_contact(callback: CallbackQuery) -> None:
+    if callback.message is not None:
+        await callback.message.answer(CONTACT_HELP)
+    await callback.answer()
+
+
+@router.callback_query(F.data == "menu:raw")
+async def handle_menu_raw(callback: CallbackQuery) -> None:
+    if callback.message is not None:
+        await callback.message.answer(
+            "Use /raw on any message to inspect sanitized Telegram update JSON."
+        )
+    await callback.answer()
 
 
 @router.message(Command("id"))
 async def handle_id(message: Message) -> None:
+    log_message_event(message, "command", command="id")
     await message.answer(format_chat(message.chat, message))
 
 
 @router.message(Command("support_card"))
 async def handle_support_card(message: Message) -> None:
+    log_message_event(message, "command", command="support_card")
     if message.from_user is None:
         await message.answer("Telegram did not include user data in this update.")
         return
@@ -42,16 +81,13 @@ async def handle_support_card(message: Message) -> None:
 
 @router.message(Command("contact"))
 async def handle_contact_help(message: Message) -> None:
-    await message.answer(
-        "<b>Contact lookup</b>\n"
-        "Forward me a message from a user, group or channel. I will show every origin field "
-        "Telegram exposes to bots.\n\n"
-        "If Telegram hides the sender, I will say that clearly instead of guessing."
-    )
+    log_message_event(message, "command", command="contact")
+    await message.answer(CONTACT_HELP)
 
 
 @router.message(F.forward_origin | F.forward_from | F.forward_from_chat | F.forward_sender_name)
 async def handle_forwarded_origin(message: Message, bot: Bot) -> None:
+    log_message_event(message, "forwarded_origin")
     enriched_chat = await get_forwarded_chat_details(message, bot)
     await message.answer(format_contact_lookup(message, enriched_chat=enriched_chat))
 
@@ -76,48 +112,77 @@ async def get_forwarded_chat_details(message: Message, bot: Bot) -> Chat | None:
 
 @router.message(Command("raw"))
 async def handle_raw(message: Message) -> None:
+    log_message_event(message, "command", command="raw")
     data = redact(message.model_dump(mode="json", exclude_none=True))
     text = compact_json(data)
     if len(text) > 3500:
         text = text[:3500] + "\n...[truncated]"
-    await message.answer(f"<pre>{text}</pre>")
+    await message.answer(preformatted(text))
+
+
+@router.message(Command("raw_full"))
+async def handle_raw_full(message: Message) -> None:
+    log_message_event(message, "command", command="raw_full")
+    if not message.text or "confirm" not in message.text.lower().split():
+        await message.answer(RAW_FULL_WARNING)
+        return
+    text = compact_json(message.model_dump(mode="json", exclude_none=True))
+    if len(text) > 3500:
+        text = text[:3500] + "\n...[truncated]"
+    await message.answer(preformatted(text))
 
 
 @router.message(Command("diagnose"))
 async def handle_diagnose(message: Message, bot: Bot) -> None:
-    lines = [
-        "<b>Diagnostics</b>",
-        f"Chat type: <code>{message.chat.type}</code>",
-        f"Chat ID: <code>{message.chat.id}</code>",
-    ]
-    if message.message_thread_id is not None:
-        lines.append(f"Topic ID: <code>{message.message_thread_id}</code>")
+    log_message_event(message, "command", command="diagnose")
+    errors: list[str] = []
+    chat = None
+    bot_member = None
+    member_count = None
+
+    try:
+        chat = await bot.get_chat(message.chat.id)
+    except TelegramAPIError as exc:
+        errors.append(f"getChat failed: {exc.__class__.__name__}")
+
+    try:
+        member_count = await bot.get_chat_member_count(message.chat.id)
+    except TelegramAPIError as exc:
+        errors.append(f"getChatMemberCount failed: {exc.__class__.__name__}")
 
     try:
         me = await bot.get_me()
-        member = await bot.get_chat_member(message.chat.id, me.id)
-        lines.append(f"Bot status: <code>{member.status}</code>")
+        bot_member = await bot.get_chat_member(message.chat.id, me.id)
     except TelegramAPIError as exc:
-        lines.append(f"Bot status check failed: <code>{exc.__class__.__name__}</code>")
+        errors.append(f"getChatMember(bot) failed: {exc.__class__.__name__}")
 
-    lines.extend(
-        [
-            "",
-            "If regular group messages are missing, check BotFather privacy mode.",
-            "Telegram does not expose private users, hidden members or inaccessible chats to bots.",
-        ]
+    await message.answer(
+        format_diagnostics(
+            message,
+            chat=chat,
+            bot_member=bot_member,
+            member_count=member_count,
+            errors=errors,
+        )
     )
-    await message.answer("\n".join(lines))
+
+
+@router.message(Command("help"))
+async def handle_help(message: Message) -> None:
+    log_message_event(message, "command", command="help")
+    await message.answer(HELP_OVERVIEW, reply_markup=start_keyboard())
 
 
 @router.message(Command(*HELP_TEXTS.keys()))
 async def handle_help_topic(message: Message) -> None:
+    log_message_event(message, "command", command="help_topic")
     command = message.text.split(maxsplit=1)[0].lstrip("/") if message.text else ""
     await message.answer(HELP_TEXTS.get(command, HELP_TEXTS["help_user_id"]))
 
 
 @router.message(F.text.regexp(r"^@[A-Za-z0-9_]{5,32}$"))
 async def handle_username_lookup(message: Message, bot: Bot) -> None:
+    log_message_event(message, "username_lookup")
     username = message.text.strip()
     try:
         chat = await bot.get_chat(username)
@@ -128,7 +193,12 @@ async def handle_username_lookup(message: Message, bot: Bot) -> None:
             "The chat may be private, inaccessible, deleted or not exposed to bots."
         )
         return
-    await message.answer(format_chat_lookup(chat))
+    member_count = None
+    try:
+        member_count = await bot.get_chat_member_count(chat.id)
+    except TelegramAPIError:
+        member_count = None
+    await message.answer(format_chat_lookup(chat, member_count=member_count))
 
 
 @router.message()

@@ -5,6 +5,8 @@ from typing import Any
 
 from aiogram.types import (
     Chat,
+    ChatFullInfo,
+    ChatMember,
     Message,
     MessageOriginChannel,
     MessageOriginChat,
@@ -29,6 +31,19 @@ CHAT_EXTRA_FIELDS = (
     "linked_chat_id",
     "accent_color_id",
     "profile_accent_color_id",
+)
+DIAGNOSTIC_CHAT_FIELDS = (
+    "is_forum",
+    "active_usernames",
+    "description",
+    "linked_chat_id",
+    "permissions",
+    "slow_mode_delay",
+    "message_auto_delete_time",
+    "has_private_forwards",
+    "has_restricted_voice_and_video_messages",
+    "join_to_send_messages",
+    "join_by_request",
 )
 
 
@@ -105,7 +120,7 @@ def format_support_card(user: User) -> str:
     )
 
 
-def format_chat_lookup(chat: Chat) -> str:
+def format_chat_lookup(chat: Chat, member_count: int | None = None) -> str:
     lines = [
         "<b>Public chat lookup</b>",
         f"Chat ID: {code(chat.id)}",
@@ -113,8 +128,48 @@ def format_chat_lookup(chat: Chat) -> str:
         f"Title: {escape(value_or_dash(chat.title))}",
         f"Username: {code('@' + chat.username if chat.username else '-')}",
     ]
+    if member_count is not None:
+        lines.append(f"Member count: {code(member_count)}")
     if getattr(chat, "is_forum", None) is not None:
         lines.append(f"Forum: {code(chat.is_forum)}")
+    return "\n".join(lines)
+
+
+def format_diagnostics(
+    message: Message,
+    chat: ChatFullInfo | Chat | None = None,
+    bot_member: ChatMember | None = None,
+    member_count: int | None = None,
+    errors: list[str] | None = None,
+) -> str:
+    details_chat = chat or message.chat
+    lines = [
+        "<b>Diagnostics</b>",
+        format_chat_details(details_chat),
+        f"Current message ID: {code(message.message_id)}",
+    ]
+    if message.message_thread_id is not None:
+        lines.append(f"Topic ID: {code(message.message_thread_id)}")
+    if member_count is not None:
+        lines.append(f"Member count: {code(member_count)}")
+    if bot_member is not None:
+        lines.append(f"Bot status: {code(bot_member.status)}")
+        admin_rights = format_admin_rights(bot_member)
+        if admin_rights:
+            lines.extend(admin_rights)
+    lines.extend(format_extra_fields(details_chat, DIAGNOSTIC_CHAT_FIELDS))
+    if errors:
+        lines.append("")
+        lines.append("<b>Unavailable checks</b>")
+        lines.extend(f"- {escape(error)}" for error in errors)
+    lines.extend(
+        [
+            "",
+            "<b>Notes</b>",
+            "Privacy mode can prevent bots from seeing regular group messages.",
+            "Telegram does not expose hidden users, private chats or inaccessible channels.",
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -238,6 +293,27 @@ def format_chat_details(chat: Chat) -> str:
     return "\n".join(lines)
 
 
+def format_admin_rights(member: ChatMember) -> list[str]:
+    fields = (
+        "can_delete_messages",
+        "can_manage_chat",
+        "can_invite_users",
+        "can_restrict_members",
+        "can_pin_messages",
+        "can_manage_topics",
+        "can_post_messages",
+        "can_edit_messages",
+    )
+    enabled = [
+        field_name.replace("_", " ")
+        for field_name in fields
+        if getattr(member, field_name, None) is True
+    ]
+    if not enabled:
+        return []
+    return [f"Admin rights: {code(', '.join(enabled))}"]
+
+
 def format_extra_fields(model: object, field_names: tuple[str, ...]) -> list[str]:
     lines: list[str] = []
     for field_name in field_names:
@@ -261,3 +337,7 @@ def compact_json(data: dict[str, Any]) -> str:
     import json
 
     return json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True)
+
+
+def preformatted(text: str) -> str:
+    return f"<pre>{escape(text)}</pre>"

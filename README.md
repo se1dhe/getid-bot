@@ -18,8 +18,11 @@ It is not a scraping or deanonymization tool. If Telegram hides a field, the bot
 - Public `@username` lookup through Telegram `getChat`.
 - Forum topic detection through `message_thread_id`.
 - Sanitized raw Telegram update output via `/raw`.
+- Explicit full raw output via `/raw_full confirm`.
 - Permission and privacy-mode explanation via `/diagnose`.
 - Minimal support identity card via `/support_card`.
+- Inline onboarding buttons for My ID, Help, Contact lookup, Raw JSON and GitHub.
+- Structured privacy-safe command logs.
 - Built-in help texts for common Telegram ID questions.
 - Open-source notice and repository link in onboarding.
 - Railway-ready worker deployment.
@@ -90,6 +93,20 @@ The bot shows:
 
 Supergroup and channel IDs may be negative and often start with `-100`. Store Telegram IDs as 64-bit integers or strings to avoid precision loss.
 
+## Rich Diagnostics
+
+Use `/diagnose` to inspect what the bot can currently verify.
+
+The bot attempts:
+
+- `getChat` for richer chat metadata.
+- `getChatMemberCount` for visible member/subscriber count.
+- `getChatMember` for the bot's own status and admin rights.
+- Topic ID detection from the current message.
+- Privacy-mode and inaccessible-data explanations.
+
+Some checks can fail in private or inaccessible chats. Failures are shown as unavailable checks instead of crashing the command.
+
 ## Raw Update Debugging
 
 Use `/raw` to see the sanitized Telegram update JSON.
@@ -100,9 +117,24 @@ The bot redacts common sensitive values before sending raw output:
 - Invite links.
 - Phone numbers.
 - Email addresses.
+- Message text and captions.
+- Web app callback data and generic callback data.
+- Payment/order/passport fields.
 - Sensitive Telegram file identifiers and direct URL fields.
 
 Long raw responses are truncated to stay within Telegram message limits.
+
+Use `/raw_full confirm` only when you deliberately need unredacted update JSON. Prefer `/raw` for normal debugging.
+
+## Inline Onboarding
+
+`/start` includes inline buttons:
+
+- My ID.
+- Help.
+- Contact lookup.
+- Raw JSON instructions.
+- GitHub repository link.
 
 ## Commands
 
@@ -113,8 +145,10 @@ start - Show your Telegram identity and next steps
 id - Show current chat, message and topic IDs
 contact - Inspect a forwarded user, chat or channel
 raw - Show sanitized raw Telegram update JSON
+raw_full - Show unredacted raw JSON after explicit confirmation
 diagnose - Explain permissions and privacy mode
 support_card - Create a minimal support identity card
+help - Show all bot capabilities
 help_user_id - How to get Telegram user ID
 help_group_id - How to get Telegram group ID
 help_channel_id - How to get Telegram channel ID
@@ -166,6 +200,19 @@ uv run pytest
 uv run ruff check .
 ```
 
+## Observability
+
+The bot logs structured command events without raw payloads:
+
+- Event name.
+- Chat type.
+- Chat ID as a string.
+- Message ID.
+- Topic ID when present.
+- Command or lookup type.
+
+Do not add raw update bodies, message text, phone numbers, usernames or tokens to logs.
+
 ## Railway Deployment
 
 Create a Railway service from this GitHub repository.
@@ -198,8 +245,10 @@ src/getid_bot/
   bot.py          # aiogram bot startup
   config.py       # environment settings
   handlers.py     # Telegram command and message handlers
+  keyboards.py    # inline onboarding controls
   formatters.py   # HTML response formatting
   help_texts.py   # short built-in docs
+  observability.py # structured privacy-safe logs
   redaction.py    # raw update redaction
 tests/
   test_formatters.py
@@ -212,3 +261,8 @@ Do not add features that scrape members, deanonymize users, bypass Telegram priv
 
 The product promise is diagnostics, transparency and safe developer/admin workflows.
 
+## User Documentation
+
+User-facing docs live in `docs/user-guide.md`.
+
+Launch and BotFather copy lives in `docs/launch.md`.

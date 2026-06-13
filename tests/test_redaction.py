@@ -29,3 +29,16 @@ def test_redact_masks_sensitive_keys_recursively() -> None:
     assert redacted["message"]["from"]["email"] == "[REDACTED]"
     assert redacted["message"]["items"][0]["phone_number"] == "[REDACTED]"
 
+
+def test_redact_masks_message_text_and_callback_data() -> None:
+    payload = {
+        "message": {"text": "private support request"},
+        "callback_query": {"data": "user:123:secret"},
+        "channel_post": {"caption": "private caption"},
+    }
+
+    redacted = redact(payload)
+
+    assert redacted["message"]["text"] == "[REDACTED_TEXT]"
+    assert redacted["callback_query"]["data"] == "[REDACTED_TEXT]"
+    assert redacted["channel_post"]["caption"] == "[REDACTED_TEXT]"

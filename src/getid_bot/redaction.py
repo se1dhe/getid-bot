@@ -10,8 +10,20 @@ SENSITIVE_KEYS = {
     "email",
     "invite_link",
     "url",
+    "text",
+    "caption",
+    "web_app_data",
+    "data",
+    "credential",
+    "secret",
+    "password",
     "file_id",
     "file_unique_id",
+    "passport_data",
+    "successful_payment",
+    "invoice_payload",
+    "shipping_address",
+    "order_info",
 }
 
 EMAIL_RE = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
@@ -34,7 +46,7 @@ def redact(value: Any) -> Any:
         for key, item in value.items():
             key_text = str(key)
             if key_text.lower() in SENSITIVE_KEYS:
-                redacted[key_text] = "[REDACTED]"
+                redacted[key_text] = redact_key_value(key_text)
             else:
                 redacted[key_text] = redact(item)
         return redacted
@@ -47,3 +59,8 @@ def redact(value: Any) -> Any:
 
     return value
 
+
+def redact_key_value(key: str) -> str:
+    if key.lower() in {"text", "caption", "data"}:
+        return "[REDACTED_TEXT]"
+    return "[REDACTED]"

@@ -5,6 +5,7 @@ from getid_bot.formatters import (
     format_contact_lookup,
     format_support_card,
     format_user,
+    preformatted,
 )
 
 
@@ -123,3 +124,10 @@ def test_format_contact_lookup_user_origin_shows_missing_premium() -> None:
 
     assert "Premium" in text
     assert "not exposed by Telegram" in text
+
+
+def test_preformatted_escapes_html() -> None:
+    text = preformatted('{"text": "<hello>&"}')
+
+    assert text.startswith("<pre>")
+    assert "&lt;hello&gt;&amp;" in text
